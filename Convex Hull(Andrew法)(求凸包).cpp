@@ -14,7 +14,7 @@ struct node
 	double x, y;
 	bool operator<(const node& cmp)const
 	{
-		if (x != cmp.x)
+		if (fabs(x - cmp.x) > eps)
 		{
 			return x < cmp.x;
 		}
@@ -34,7 +34,7 @@ struct node
 			return false;
 		}
 	}
-} p[N + 10];
+} p[2 * N + 10];
 
 int main()
 {
@@ -49,33 +49,10 @@ int main()
 	}
 	sort(p + 1, p + n + 1);
 	n = unique(p + 1, p + n + 1) - (p + 1);
+	copy(p + 1, p + n, p + n + 1); // 也可以下面写 2 个 for 循环替代
+	reverse(p + n + 1, p + 2 * n); // 也可以下面写 2 个 for 循环替代
 	stack<node> sta;
-	for (ll i = 1; i <= n; i++)
-	{
-		while (sta.size() >= 2)
-		{
-			node p2 = sta.top();
-			sta.pop();
-			node p1 = sta.top();
-			sta.pop();
-			double x1 = p2.x - p1.x;
-			double y1 = p2.y - p1.y;
-			double x2 = p[i].x - p2.x;
-			double y2 = p[i].y - p2.y;
-			sta.push(p1);
-			sta.push(p2);
-			if (x1 * y2 - x2 * y1 < -eps)
-			{
-				sta.pop();
-			}
-			else
-			{
-				break;
-			}
-		}
-		sta.push(p[i]);
-	}
-	for (ll i = n - 1; i >= 1; i--)
+	for (ll i = 1; i <= 2 * n - 1; i++)
 	{
 		while (sta.size() >= 2)
 		{
