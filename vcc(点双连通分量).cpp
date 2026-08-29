@@ -21,12 +21,12 @@ void tarjan(ll u, ll f)
 			if (low[v] >= dfn[u])
 			{
 				bcc_cnt++;
-				bcc_id[bcc_cnt].pb(u);
+				bcc_node[bcc_cnt].pb(u);
 				while (!stk.empty())
 				{
 					ll cur = stk.top();
 					stk.pop();
-					bcc_id[bcc_cnt].pb(cur);
+					bcc_node[bcc_cnt].pb(cur);
 					if (cur == v)
 					{
 						break;
@@ -37,6 +37,6 @@ void tarjan(ll u, ll f)
 	}
 	if (f == 0 && child == 0)
 	{
-		bcc_id[++bcc_cnt].pb(u);
+		bcc_node[++bcc_cnt].pb(u);
 	}
 }
