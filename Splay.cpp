@@ -1,45 +1,279 @@
+#include<bits/stdc++.h>
+using namespace std;
+using ll = long long;
+using ull = unsigned long long;
+using pll = pair<ll, ll>;
+constexpr ll INF = (ll)1e18;
+mt19937_64 rnd(chrono::steady_clock::now().time_since_epoch().count());
+#define pb push_back
+
+constexpr ll N = 100000;
+
+struct Node
+{
+	ll ch[2];
+	ll fa;
+	ll val;
+	ll cnt;
+	ll sz;
+} tr[N + 10];
+
+ll rt, tot;
+
+void pushup(ll x)
+{
+	tr[x].sz = tr[tr[x].ch[0]].sz + tr[tr[x].ch[1]].sz + tr[x].cnt;
+}
+
 bool dir(ll x)
 {
-	return ch[fa[x]][1] == x; // 0 为左儿子，1 为右儿子
+	return tr[tr[x].fa].ch[1] == x;
 }
 
 void rotate(ll x)
 {
-	ll y = fa[x], z = fa[y];
+	ll y = tr[x].fa, z = tr[y].fa;
 	ll k = dir(x);
-	ch[y][k] = ch[x][k ^ 1];
-	if (ch[x][k ^ 1]) fa[ch[x][k ^ 1]] = y;
-	ch[x][k ^ 1] = y;
-	fa[y] = x;
-	fa[x] = z;
-	if (z) ch[z][dir(y)] = x; // 这里甚至能直接复用 which(y) 替代 ch[z][1] == y
+	tr[y].ch[k] = tr[x].ch[k ^ 1];
+	if (tr[x].ch[k ^ 1])
+	{
+		tr[tr[x].ch[k ^ 1]].fa = y;
+	}
+	tr[x].ch[k ^ 1] = y;
+	if (z)
+	{
+		tr[z].ch[tr[z].ch[1] == y] = x;
+	}
+	tr[y].fa = x;
+	tr[x].fa = z;
 	pushup(y);
 	pushup(x);
 }
 
 void splay(ll x, ll goal = 0)
 {
-	while (fa[x] != goal)
+	while (tr[x].fa != goal)
 	{
-		ll p = fa[x];
-		ll g = fa[p];
-		if (g != goal) // 至少还有两层才能到达目标，需要双旋
+		ll p = tr[x].fa, g = tr[p].fa;
+		if (g != goal)
 		{
-			if (get(x) == get(p))
+			if (dir(x) == dir(p))
 			{
-				// 情况 2：一字形 (Zig-Zig)，同向
-				// 必须先旋父节点 p！
 				rotate(p);
 			}
 			else
 			{
-				// 情况 3：之字形 (Zig-Zag)，异向
-				// 连续旋自己两次（这里先旋一次 x）
 				rotate(x);
 			}
 		}
-		// 无论是哪种情况，最后一步都是旋自己 x
 		rotate(x);
 	}
-	if (!goal) rt = x;
+	if (!goal)
+	{
+		rt = x;
+	}
+}
+
+ll newNode(ll v, ll p)
+{
+	tot++;
+	tr[tot].val = v;
+	tr[tot].cnt = 1;
+	tr[tot].sz = 1;
+	tr[tot].fa = p;
+	tr[tot].ch[0] = 0;
+	tr[tot].ch[1] = 0;
+	return tot;
+}
+
+void init()
+{
+	rt = newNode(-INF, 0);
+	tr[rt].ch[1] = newNode(INF, rt);
+	pushup(rt);
+}
+
+void insert(ll v)
+{
+	ll u = rt, p = 0;
+	while (u && tr[u].val != v)
+	{
+		p = u;
+		u = tr[u].ch[v > tr[u].val];
+	}
+	if (u)
+	{
+		tr[u].cnt++;
+		pushup(u);
+	}
+	else
+	{
+		u = newNode(v, p);
+		if (p)
+		{
+			tr[p].ch[v > tr[p].val] = u;
+		}
+	}
+	splay(u);
+}
+
+void del(ll v)
+{
+	ll u = rt;
+	while (u && tr[u].val != v)
+	{
+		u = tr[u].ch[v > tr[u].val];
+	}
+	if (!u)
+	{
+		return;
+	}
+	splay(u);
+	if (tr[u].cnt > 1)
+	{
+		tr[u].cnt--;
+		pushup(u);
+		return;
+	}
+	ll p = tr[u].ch[0];
+	while (tr[p].ch[1])
+	{
+		p = tr[p].ch[1];
+	}
+	ll s = tr[u].ch[1];
+	while (tr[s].ch[0])
+	{
+		s = tr[s].ch[0];
+	}
+	splay(p, 0);
+	splay(s, p);
+	tr[s].ch[0] = 0;
+	pushup(s);
+	pushup(p);
+}
+
+ll getRank(ll v)
+{
+	ll u = rt, res = 0, last = 0;
+	while (u)
+	{
+		last = u;
+		if (v <= tr[u].val)
+		{
+			u = tr[u].ch[0];
+		}
+		else
+		{
+			res += tr[tr[u].ch[0]].sz + tr[u].cnt;
+			u = tr[u].ch[1];
+		}
+	}
+	splay(last);
+	return res;
+}
+
+ll getKth(ll k)
+{
+	ll u = rt;
+	while (u)
+	{
+		if (tr[u].ch[0] && k <= tr[tr[u].ch[0]].sz)
+		{
+			u = tr[u].ch[0];
+		}
+		else
+		{
+			ll tmp = tr[tr[u].ch[0]].sz + tr[u].cnt;
+			if (k <= tmp)
+			{
+				splay(u);
+				return tr[u].val;
+			}
+			k -= tmp;
+			u = tr[u].ch[1];
+		}
+	}
+	return 0;
+}
+
+ll getPre(ll v)
+{
+	ll u = rt, ans = -INF, last = 0;
+	while (u)
+	{
+		last = u;
+		if (tr[u].val < v)
+		{
+			ans = max(ans, tr[u].val);
+			u = tr[u].ch[1];
+		}
+		else
+		{
+			u = tr[u].ch[0];
+		}
+	}
+	splay(last);
+	return ans;
+}
+
+ll getNxt(ll v)
+{
+	ll u = rt, ans = INF, last = 0;
+	while (u)
+	{
+		last = u;
+		if (tr[u].val > v)
+		{
+			ans = min(ans, tr[u].val);
+			u = tr[u].ch[0];
+		}
+		else
+		{
+			u = tr[u].ch[1];
+		}
+	}
+	splay(last);
+	return ans;
+}
+
+int main()
+{
+//	freopen(".in", "r", stdin);
+//	freopen(".out", "w", stdout);
+	ios::sync_with_stdio(0);
+	cin.tie(0);
+	
+	init();
+	ll n;
+	cin >> n;
+	for (ll i = 1; i <= n; i++)
+	{
+		ll opt, x;
+		cin >> opt >> x;
+		if (opt == 1)
+		{
+			insert(x);
+		}
+		else if (opt == 2)
+		{
+			del(x);
+		}
+		else if (opt == 3)
+		{
+			cout << getRank(x) << "\n";
+		}
+		else if (opt == 4)
+		{
+			cout << getKth(x + 1) << "\n";
+		}
+		else if (opt == 5)
+		{
+			cout << getPre(x) << "\n";
+		}
+		else if (opt == 6)
+		{
+			cout << getNxt(x) << "\n";
+		}
+	}
+	return 0;
 }
